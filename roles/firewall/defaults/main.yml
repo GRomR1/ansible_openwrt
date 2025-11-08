@@ -17,6 +17,7 @@ firewall_zones:
     name: ""
     state: ""
     network: []
+    device: []
     masq: ""
     mtu_fix: ""
     input: ""

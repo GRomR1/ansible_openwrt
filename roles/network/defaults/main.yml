@@ -13,7 +13,10 @@ network_devices:
     ports: []
     stp: ""
     igmp_snooping: ""
+    vlan: ""
     ipv6: ""
+    vid: ""
+    ifname: ""
 
 # interface section
 network_interfaces:

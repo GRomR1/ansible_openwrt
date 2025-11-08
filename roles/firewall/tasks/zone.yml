@@ -35,6 +35,7 @@
         value:
           name: "{{ item.name | default(omit) }}"
           network: "{{ item.network | default([]) | join(' ') }}"
+          device: "{{ item.device | default([]) | join(' ') }}"
           masq: "{{ item.masq | default(omit) }}"
           mtu_fix: "{{ item.mtu_fix | default(omit) }}"
           input: "{{ item.input | default(omit) }}"

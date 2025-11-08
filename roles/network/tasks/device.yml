@@ -40,3 +40,5 @@
           vlan: "{{ item.vlan | default(omit) }}"
           igmp_snooping: "{{ item.igmp_snooping | default(omit) }}"
           ipv6: "{{ item.ipv6 | default(omit) }}"
+          vid: "{{ item.vid | default(omit) }}"
+          ifname: "{{ item.ifname | default(omit) }}"
