@@ -37,6 +37,7 @@ network_interfaces:
     ipv6: ""
     delegate: ""
     ip6assign: ""
+    ip6hint: ""
 
 # rule section
 network_rules:

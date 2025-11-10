@@ -26,6 +26,8 @@ dhcp_common:
   serverlist: ""
   address: []
   allservers: ""
+  filter_aaaa: ""
+  noresolv: ""
 
 # dhcp section
 dhcp_pools:

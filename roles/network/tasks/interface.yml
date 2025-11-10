@@ -48,3 +48,4 @@
           ipv6: "{{ item.ipv6 | default(omit) }}"
           delegate: "{{ item.delegate | default(omit) }}"
           ip6assign: "{{ item.ip6assign | default(omit) }}"
+          ip6hint: "{{ item.ip6hint | default(omit) }}"
