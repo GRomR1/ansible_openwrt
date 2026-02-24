@@ -49,6 +49,7 @@ firewall_rules:
     dest: ""
     dest_ip: ""
     dest_port: []
+    icmp_type: []
     target: ""
     proto: []
     family: ""

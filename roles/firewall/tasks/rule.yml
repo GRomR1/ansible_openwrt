@@ -41,6 +41,7 @@
           dest: "{{ item.dest | default(omit) }}"
           dest_ip: "{{ item.dest_ip | default(omit) }}"
           dest_port: "{{ item.dest_port | default([]) | join(' ') }}"
+          icmp_type: "{{ item.icmp_type | default([]) | join(' ') }}"
           target: "{{ item.target | default(omit) }}"
           proto: "{{ item.proto | default([]) | join(' ') }}"
           family: "{{ item.family | default(omit) }}"
