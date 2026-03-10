@@ -38,6 +38,7 @@ network_interfaces:
     delegate: ""
     ip6assign: ""
     ip6hint: ""
+    sourcefilter: ""
 
 # rule section
 network_rules:

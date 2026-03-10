@@ -64,6 +64,7 @@ OpenWRT `network` configuration
 | &emsp;`type` | Routing type (`unicast`, `local`, `broadcast`, `multicast`, `unreachable`, `prohibit`, `blackhole` or `anycast`) | `optional` | `string` | `unicast` |
 | &emsp;`proto` | Protocol ID to use for the route declared in `/etc/iproute2/rt_tables` | `mandatory` | `string` | `main` |
 | &emsp;`disabled` | Disable the rule | `optional` | `boolean` | `0` |
+| &emsp;`sourcefilter` | Source filter for the route | `optional` | `boolean` | `0` |
 
 ## Dependencies
 
