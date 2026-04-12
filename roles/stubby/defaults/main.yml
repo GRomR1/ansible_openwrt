@@ -1,0 +1,39 @@
+---
+stubby_pkgs: ["stubby", "ca-certificates"]
+
+stubby_resolvers_clean: false
+
+stubby_common: {}
+  # appdata_dir: "/var/lib/stubby"
+  # dns_transport: "GETDNS_TRANSPORT_TLS"
+  # tls_authentication: "1"
+  # round_robin_upstreams: "1"
+  # idle_timeout: "10000"
+  # tls_query_padding_blocksize: "128"
+  # edns_client_subnet_private: "1"
+
+stubby_resolvers: []
+  # - address: "9.9.9.9"
+  #   tls_auth_name: "dns.quad9.net"
+  #   tls_port: "853"
+  # - address: "2620:fe::fe"
+  #   tls_auth_name: "dns.quad9.net"
+  #   tls_port: "853"
+  # - address: "1.1.1.1"
+  #   tls_auth_name: "cloudflare-dns.com"
+  #   tls_port: "853"
+  # - address: "1.0.0.1"
+  #   tls_auth_name: "cloudflare-dns.com"
+  #   tls_port: "853"
+  # - address: "2606:4700:4700::1111"
+  #   tls_auth_name: "cloudflare-dns.com"
+  #   tls_port: "853"
+  # - address: "2606:4700:4700::1001"
+  #   tls_auth_name: "cloudflare-dns.com"
+  #   tls_port: "853"
+  # - address: "8.8.8.8"
+  #   tls_auth_name: "dns.google"
+  #   tls_port: "853"
+  # - address: "8.8.4.4"
+  #   tls_auth_name: "dns.google"
+  #   tls_port: "853"

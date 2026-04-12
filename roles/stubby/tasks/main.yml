@@ -1,0 +1,77 @@
+---
+- name: Update opkg cache
+  ansible.builtin.command:
+    cmd: "opkg update"
+  changed_when: false
+
+- name: Install Stubby packages
+  opkg:
+    name: "{{ item }}"
+    state: "present"
+  loop: "{{ stubby_pkgs }}"
+
+- name: Clear all default stubby resolvers
+  ansible.builtin.shell: |
+    while uci -q delete stubby.@resolver[0]; do :; done
+  changed_when: false
+  when: stubby_resolvers_clean | default(false)
+
+- name: Configure Stubby global settings
+  uci:
+    command: set
+    config: stubby
+    section: "global"
+    type: "stubby"
+    value:
+      appdata_dir: "{{ stubby_common.appdata_dir | default(omit) }}"
+      dns_transport: "{{ stubby_common.dns_transport | default(omit) }}"
+      tls_authentication: "{{ stubby_common.tls_authentication | default(omit) }}"
+      round_robin_upstreams: "{{ stubby_common.round_robin_upstreams | default(omit) }}"
+      idle_timeout: "{{ stubby_common.idle_timeout | default(omit) }}"
+      tls_query_padding_blocksize: "{{ stubby_common.tls_query_padding_blocksize | default(omit) }}"
+      edns_client_subnet_private: "{{ stubby_common.edns_client_subnet_private | default(omit) }}"
+
+- name: Create stubby appdata directory
+  ansible.builtin.file:
+    path: "{{ stubby_common.appdata_dir }}"
+    state: directory
+    mode: '0755'
+    owner: "stubby"
+    group: "stubby"
+  ignore_errors: yes
+
+- name: Create resolver section
+  uci:
+    command: "add"
+    config: stubby
+    section: "resolver_{{ ansible_loop.index }}"
+    type: "resolver"
+  loop: "{{ stubby_resolvers }}"
+  loop_control:
+    extended: yes
+
+- name: Configure Stubby resolvers via UCI
+  uci:
+    command: set
+    config: stubby
+    section: "resolver_{{ ansible_loop.index }}"
+    type: "resolver"
+    value:
+      address: "{{ item.address }}"
+      tls_auth_name: "{{ item.tls_auth_name }}"
+      tls_port: "{{ item.tls_port | default(omit) }}"
+  loop: "{{ stubby_resolvers }}"
+  loop_control:
+    extended: yes
+
+- name: Commit Stubby configuration
+  uci:
+    command: commit
+    config: stubby
+  notify: Restart stubby
+
+- name: Enable and start stubby
+  ansible.builtin.service:
+    name: stubby
+    enabled: yes
+    state: started
