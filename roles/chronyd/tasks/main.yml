@@ -1,0 +1,58 @@
+---
+- name: Update opkg cache
+  ansible.builtin.command:
+    cmd: "opkg update"
+  changed_when: false
+
+- name: Install chrony packages
+  opkg:
+    name: "{{ item }}"
+    state: "present"
+  loop: "{{ chronyd_pkgs }}"
+
+- name: Stop and disable sysntpd to avoid port conflicts
+  ansible.builtin.service:
+    name: sysntpd
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Auto-discover LAN subnet if not provided
+  when: chronyd_allow_subnets | length == 0
+  block:
+    - name: Get LAN IP address
+      ansible.builtin.command: uci -q get network.lan.ipaddr
+      register: lan_ip
+      changed_when: false
+
+    - name: Get LAN netmask
+      ansible.builtin.command: uci -q get network.lan.netmask
+      register: lan_mask
+      changed_when: false
+
+    - name: Set chronyd_allow_subnets from discovered LAN
+      ansible.builtin.set_fact:
+        chronyd_allow_subnets: ["{{ lan_ip.stdout }}/{{ lan_mask.stdout }}"]
+      when: lan_ip.stdout != "" and lan_mask.stdout != ""
+
+- name: Create chrony log directory in /tmp
+  ansible.builtin.file:
+    path: "{{ chronyd_logdir }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure chrony
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    mode: '0644'
+  notify: Restart chronyd
+
+- name: Enable and start chronyd
+  ansible.builtin.service:
+    name: chronyd
+    enabled: yes
+    state: started
+
+- name: Flush handlers to ensure chronyd is running
+  ansible.builtin.meta: flush_handlers

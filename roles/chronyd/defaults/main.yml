@@ -1,0 +1,15 @@
+---
+chronyd_pkgs: ["chrony"]
+
+chronyd_pools:
+  - pool.ntp.org
+
+chronyd_allow_subnets: []
+# If empty, the role will try to auto-discover the LAN subnet.
+
+chronyd_makestep_threshold: 1.0
+chronyd_makestep_limit: 3
+chronyd_driftfile: /var/lib/chrony/drift
+chronyd_logdir: /tmp/log/chrony
+chronyd_local_stratum: 10
+chronyd_cmdport: 0

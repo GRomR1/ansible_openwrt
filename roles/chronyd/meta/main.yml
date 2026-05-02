@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  author: flyoverhead
+  description: Configure chrony NTP client and server
+  license: GPL-3.0
+  min_ansible_version: "2.13"
+  platforms:
+    - name: OpenWrt
+      versions: ["22.03", "23.05"]
+  galaxy_tags: ["openwrt", "ntp", "chrony"]
+dependencies:
+  - role: gekmihesg.openwrt

@@ -1,0 +1,32 @@
+# External time sources
+{% for pool in chronyd_pools %}
+pool {{ pool }} iburst
+{% endfor %}
+
+# Step large clock offsets only during early startup
+makestep {{ chronyd_makestep_threshold }} {{ chronyd_makestep_limit }}
+
+# Save clock drift
+driftfile {{ chronyd_driftfile }}
+
+# Allow NTP clients only from LAN.
+{% for subnet in chronyd_allow_subnets %}
+allow {{ subnet }}
+{% endfor %}
+
+# Do not serve arbitrary networks.
+# Do not add "allow" without a subnet.
+
+# Serve time to LAN even if upstream is unavailable,
+# but only as low-quality fallback.
+local stratum {{ chronyd_local_stratum }}
+
+# Run with minimal exposed command interface.
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
+
+# Optional: disable remote command access
+cmdport {{ chronyd_cmdport }}
+
+# Logging: keep minimal on flash-based routers
+logdir {{ chronyd_logdir }}
