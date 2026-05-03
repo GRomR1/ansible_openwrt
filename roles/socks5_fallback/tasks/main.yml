@@ -1,0 +1,37 @@
+---
+- name: Install required packages
+  opkg:
+    name: curl
+    state: present
+
+- name: Ensure /usr/local/bin exists
+  ansible.builtin.file:
+    path: /usr/local/bin
+    state: directory
+    mode: '0755'
+
+- name: Ensure direct routing table exists in rt_tables
+  ansible.builtin.lineinfile:
+    path: /etc/iproute2/rt_tables
+    line: "101 direct"
+    state: present
+
+- name: Deploy socks5-fallback health check script
+  ansible.builtin.template:
+    src: socks5-fallback.sh.j2
+    dest: /usr/local/bin/socks5-fallback.sh
+    mode: '0755'
+  notify: Restart socks5-fallback
+
+- name: Deploy socks5-fallback init script
+  ansible.builtin.template:
+    src: socks5-fallback.init.j2
+    dest: /etc/init.d/socks5-fallback
+    mode: '0755'
+  notify: Restart socks5-fallback
+
+- name: Enable and manage socks5-fallback service
+  ansible.builtin.service:
+    name: socks5-fallback
+    enabled: "{{ socks5_fallback_enabled | bool }}"
+    state: "{{ 'started' if socks5_fallback_enabled | bool else 'stopped' }}"

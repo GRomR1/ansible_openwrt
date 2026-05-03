@@ -1,0 +1,6 @@
+---
+- name: Restart socks5-fallback
+  ansible.builtin.service:
+    name: socks5-fallback
+    state: restarted
+

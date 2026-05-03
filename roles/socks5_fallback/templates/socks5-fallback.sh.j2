@@ -1,0 +1,96 @@
+#!/bin/sh
+
+# ============================================================
+# SOCKS5 Fallback Health Check Script
+# Monitors {{ socks5_proxy_host }}:{{ socks5_proxy_port }} and manages nftables dispatch
+# ============================================================
+
+SOCKS5_HOST="{{ socks5_proxy_host }}"
+SOCKS5_PORT="{{ socks5_proxy_port }}"
+CHECK_INTERVAL="{{ socks5_check_interval }}"        # seconds between checks
+TIMEOUT="{{ socks5_timeout }}"               # connection timeout
+LOG_PREFIX="[socks5-fallback]"
+
+# Mark values
+MARK_PROXY="{{ socks5_fwmark }}"
+
+# State file
+STATE_FILE="/tmp/socks5-fallback.state"
+
+log_msg() {
+    logger -t socks5-fallback "$1"
+    echo "$LOG_PREFIX $1"
+}
+
+get_current_state() {
+    if [ -f "$STATE_FILE" ]; then
+        cat "$STATE_FILE"
+    else
+        echo "unknown"
+    fi
+}
+
+set_state() {
+    echo "$1" > "$STATE_FILE"
+}
+
+# Check if SOCKS5 is reachable
+check_socks5() {
+    # curl to SOCKS5
+    curl -s --connect-timeout "$TIMEOUT" --socks5 "$SOCKS5_HOST:$SOCKS5_PORT" \
+         --max-time "$TIMEOUT" http://1.1.1.1 > /dev/null 2>&1
+    return $?
+}
+
+# Enable proxy mode (add rule to dispatch chain)
+enable_proxy_mode() {
+    log_msg "Enabling PROXY mode via nftables (tproxy_dispatch)"
+
+    nft flush chain inet fw4 tproxy_dispatch
+    nft add rule inet fw4 tproxy_dispatch ip protocol tcp meta mark set $MARK_PROXY tproxy ip to {{ socks5_tproxy_address }}:{{ socks5_tproxy_port }} accept
+
+    # TODO: Add IPv6 support
+    # nft add rule inet fw4 tproxy_dispatch ip6 nexthdr tcp meta mark set $MARK_PROXY tproxy ip6 to [::1]:{{ socks5_tproxy_port }} accept
+
+    set_state "proxy"
+    log_msg "Proxy mode ACTIVE - traffic redirected to TPROXY"
+}
+
+# Enable direct mode (flush dispatch chain)
+enable_direct_mode() {
+    log_msg "Enabling DIRECT mode via nftables (tproxy_dispatch)"
+    
+    nft flush chain inet fw4 tproxy_dispatch
+    
+    set_state "direct"
+    log_msg "Direct mode ACTIVE - traffic goes directly to WAN"
+}
+
+# Main logic
+main() {
+    log_msg "Starting SOCKS5 health check (host=$SOCKS5_HOST:$SOCKS5_PORT)"
+    
+    while true; do
+        CURRENT_STATE=$(get_current_state)
+        
+        if check_socks5; then
+            # SOCKS5 is UP
+            if [ "$CURRENT_STATE" != "proxy" ]; then
+                enable_proxy_mode
+            fi
+        else
+            # SOCKS5 is DOWN
+            if [ "$CURRENT_STATE" != "direct" ]; then
+                log_msg "SOCKS5 ($SOCKS5_HOST:$SOCKS5_PORT) is UNREACHABLE!"
+                enable_direct_mode
+            fi
+        fi
+        
+        sleep "$CHECK_INTERVAL"
+    done
+}
+
+# Handle signals gracefully
+trap 'log_msg "Received stop signal, exiting"; exit 0' INT TERM
+
+main

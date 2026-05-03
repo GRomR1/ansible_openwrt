@@ -1,0 +1,22 @@
+#!/bin/sh /etc/rc.common
+
+START=95
+STOP=15
+USE_PROCD=1
+
+NAME=socks5-fallback
+PROG=/usr/local/bin/socks5-fallback.sh
+
+start_service() {
+    procd_open_instance
+    procd_set_param command "$PROG"
+    procd_set_param respawn
+    procd_close_instance
+}
+
+stop_service() {
+    # Cleanup: enable proxy mode on stop for safety
+    logger -t socks5-fallback "Stopping service, enabling PROXY mode in nftables"
+    nft flush chain inet fw4 tproxy_dispatch 2>/dev/null
+    nft add rule inet fw4 tproxy_dispatch ip protocol tcp meta mark set {{ socks5_fwmark }} tproxy ip to {{ socks5_tproxy_address }}:{{ socks5_tproxy_port }} accept 2>/dev/null
+}

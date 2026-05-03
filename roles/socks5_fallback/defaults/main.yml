@@ -1,0 +1,10 @@
+---
+socks5_fallback_enabled: false
+socks5_proxy_host: "192.168.1.9"
+socks5_proxy_port: "8000"
+socks5_fwmark: "0x1"
+socks5_check_interval: "5"
+socks5_timeout: "3"
+socks5_tproxy_address: "127.0.0.1"
+socks5_tproxy_port: "12345"
+
