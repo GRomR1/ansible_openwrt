@@ -1,0 +1,59 @@
+---
+- name: Update opkg cache
+  ansible.builtin.command:
+    cmd: "opkg update"
+  changed_when: false
+
+- name: Install watchcat packages
+  opkg:
+    name: "{{ item }}"
+    state: "present"
+  loop: "{{ watchcat_pkgs }}"
+
+- name: Clear all default watchcat instances
+  ansible.builtin.shell: |
+    while uci -q delete watchcat.@watchcat[0]; do :; done
+  changed_when: false
+  when: watchcat_clean | default(false)
+
+- name: Create watchcat instances
+  uci:
+    command: "add"
+    config: watchcat
+    section: "watchcat_{{ ansible_loop.index }}"
+    type: "watchcat"
+  loop: "{{ watchcat_instances }}"
+  loop_control:
+    extended: yes
+
+- name: Configure watchcat instances via UCI
+  uci:
+    command: set
+    config: watchcat
+    section: "watchcat_{{ ansible_loop.index }}"
+    type: "watchcat"
+    value:
+      mode: "{{ item.mode }}"
+      pinghosts: "{{ item.pinghosts }}"
+      pingperiod: "{{ item.pingperiod | default(omit) }}"
+      period: "{{ item.period | default(omit) }}"
+      interface: "{{ item.interface | default(omit) }}"
+      forcedelay: "{{ item.forcedelay | default(omit) }}"
+      pingsize: "{{ item.pingsize | default(omit) }}"
+      mmifacename: "{{ item.mmifacename | default(omit) }}"
+      unlockbands: "{{ item.unlockbands | default(omit) }}"
+  loop: "{{ watchcat_instances }}"
+  loop_control:
+    extended: yes
+
+- name: Commit watchcat configuration
+  uci:
+    command: commit
+    config: watchcat
+  notify: Restart watchcat
+
+- name: Enable and start watchcat
+  ansible.builtin.service:
+    name: watchcat
+    enabled: yes
+    state: started

@@ -1,0 +1,19 @@
+---
+watchcat_pkgs: ["watchcat"]
+
+watchcat_clean: true
+
+watchcat_instances: []
+  # - mode: "restart_iface"
+  #   pinghosts: "9.9.9.9"
+  #   pingperiod: "30s"
+  #   period: "120s"
+  #   interface: "wan"
+  # - mode: "ping_reboot"
+  #   pinghosts: "8.8.8.8"
+  #   period: "5m"
+  #   interface: "eth1.1"
+  #   forcedelay: "1m"
+  # - mode: "periodic_reboot"
+  #   period: "3d"
+  #   forcedelay: "2m"

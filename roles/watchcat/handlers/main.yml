@@ -1,0 +1,7 @@
+---
+- name: Restart watchcat
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+  changed_when: false
+  loop: ["watchcat"]
