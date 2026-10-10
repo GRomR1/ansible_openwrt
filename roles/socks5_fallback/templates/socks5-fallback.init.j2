@@ -15,8 +15,10 @@ start_service() {
 }
 
 stop_service() {
-    # Cleanup: enable proxy mode on stop for safety
-    logger -t socks5-fallback "Stopping service, enabling PROXY mode in nftables"
+    # Fail-open: при остановке сервиса оставляем DIRECT-режим (цепочка пустая).
+    # Раньше здесь включался PROXY "for safety" — это чёрная дыра: если SOCKS5
+    # мёртв, а сервис остановлен (или упал), весь TCP-трафик уходил в
+    # нерабочий прокси без какой-либо health-check логики.
+    logger -t socks5-fallback "Stopping service, resetting to DIRECT mode in nftables"
     nft flush chain inet fw4 tproxy_dispatch 2>/dev/null
-    nft add rule inet fw4 tproxy_dispatch ip protocol tcp meta mark set {{ socks5_fwmark }} tproxy ip to {{ socks5_tproxy_address }}:{{ socks5_tproxy_port }} accept 2>/dev/null
 }

@@ -2,7 +2,15 @@
 
 # ============================================================
 # SOCKS5 Fallback Health Check Script
-# Monitors {{ socks5_proxy_host }}:{{ socks5_proxy_port }} and manages nftables dispatch
+# Monitors {{ socks5_proxy_host }}:{{ socks5_proxy_port }} and manages nftables dispatch.
+#
+# Источник истины — ФАКТИЧЕСКОЕ содержимое цепочки tproxy_dispatch
+# (state-файл не используется, статус виден в logread -e socks5-fallback).
+# Это чинит рассинхрон после fw4 reload:
+# при "Reloading firewall due to ifup of wan" fw4 заново применяет
+# /etc/nftables.d/99-tproxy.nft и может вернуть правило tproxy в цепочку.
+# Каждую итерацию цепочка сверяется с желаемым режимом, и расхождение
+# (drift) исправляется.
 # ============================================================
 
 SOCKS5_HOST="{{ socks5_proxy_host }}"
@@ -14,24 +22,30 @@ LOG_PREFIX="[socks5-fallback]"
 # Mark values
 MARK_PROXY="{{ socks5_fwmark }}"
 
-# State file
-STATE_FILE="/tmp/socks5-fallback.state"
+# nftables chain managed by this script (must stay EMPTY in 99-tproxy.nft)
+CHAIN="inet fw4 tproxy_dispatch"
+TPROXY_TARGET="{{ socks5_tproxy_address }}:{{ socks5_tproxy_port }}"
 
 log_msg() {
     logger -t socks5-fallback "$1"
     echo "$LOG_PREFIX $1"
 }
 
-get_current_state() {
-    if [ -f "$STATE_FILE" ]; then
-        cat "$STATE_FILE"
-    else
-        echo "unknown"
+# Read the ACTUAL mode from nftables:
+#   proxy  - tproxy rule to $TPROXY_TARGET is present in the chain
+#   direct - chain exists but has no tproxy rule
+#   missing - chain/table does not exist (fw4 not loaded yet)
+get_actual_mode() {
+    if ! nft list chain $CHAIN > /dev/null 2>&1; then
+        echo "missing"
+        return
     fi
-}
 
-set_state() {
-    echo "$1" > "$STATE_FILE"
+    if nft list chain $CHAIN 2>/dev/null | grep -qF "tproxy ip to $TPROXY_TARGET"; then
+        echo "proxy"
+    else
+        echo "direct"
+    fi
 }
 
 # Check if SOCKS5 is reachable
@@ -44,48 +58,57 @@ check_socks5() {
 
 # Enable proxy mode (add rule to dispatch chain)
 enable_proxy_mode() {
-    log_msg "Enabling PROXY mode via nftables (tproxy_dispatch)"
+    log_msg "Enabling PROXY mode via nftables ($CHAIN)"
 
-    nft flush chain inet fw4 tproxy_dispatch
-    nft add rule inet fw4 tproxy_dispatch ip protocol tcp meta mark set $MARK_PROXY tproxy ip to {{ socks5_tproxy_address }}:{{ socks5_tproxy_port }} accept
+    nft flush chain $CHAIN
+    nft add rule $CHAIN ip protocol tcp meta mark set $MARK_PROXY tproxy ip to $TPROXY_TARGET accept
 
     # TODO: Add IPv6 support
-    # nft add rule inet fw4 tproxy_dispatch ip6 nexthdr tcp meta mark set $MARK_PROXY tproxy ip6 to [::1]:{{ socks5_tproxy_port }} accept
+    # nft add rule $CHAIN ip6 nexthdr tcp meta mark set $MARK_PROXY tproxy ip6 to [::1]:{{ socks5_tproxy_port }} accept
 
-    set_state "proxy"
     log_msg "Proxy mode ACTIVE - traffic redirected to TPROXY"
 }
 
 # Enable direct mode (flush dispatch chain)
 enable_direct_mode() {
-    log_msg "Enabling DIRECT mode via nftables (tproxy_dispatch)"
-    
-    nft flush chain inet fw4 tproxy_dispatch
-    
-    set_state "direct"
+    log_msg "Enabling DIRECT mode via nftables ($CHAIN)"
+
+    nft flush chain $CHAIN
+
     log_msg "Direct mode ACTIVE - traffic goes directly to WAN"
 }
 
 # Main logic
 main() {
-    log_msg "Starting SOCKS5 health check (host=$SOCKS5_HOST:$SOCKS5_PORT)"
-    
+    log_msg "Starting SOCKS5 health check (host=$SOCKS5_HOST:$SOCKS5_PORT, chain=$CHAIN)"
+
     while true; do
-        CURRENT_STATE=$(get_current_state)
-        
+        ACTUAL_MODE=$(get_actual_mode)
+
+        if [ "$ACTUAL_MODE" = "missing" ]; then
+            log_msg "Chain $CHAIN not found (fw4 not loaded?), retrying..."
+            sleep "$CHECK_INTERVAL"
+            continue
+        fi
+
         if check_socks5; then
-            # SOCKS5 is UP
-            if [ "$CURRENT_STATE" != "proxy" ]; then
-                enable_proxy_mode
-            fi
+            DESIRED_MODE="proxy"
         else
-            # SOCKS5 is DOWN
-            if [ "$CURRENT_STATE" != "direct" ]; then
-                log_msg "SOCKS5 ($SOCKS5_HOST:$SOCKS5_PORT) is UNREACHABLE!"
+            DESIRED_MODE="direct"
+        fi
+
+        # Reconcile: apply only when nftables reality differs from desired mode.
+        # Covers both health changes and external drift (fw4 reload, manual edits).
+        if [ "$ACTUAL_MODE" != "$DESIRED_MODE" ]; then
+            if [ "$DESIRED_MODE" = "proxy" ]; then
+                log_msg "SOCKS5 ($SOCKS5_HOST:$SOCKS5_PORT) is UP, but chain mode is '$ACTUAL_MODE'"
+                enable_proxy_mode
+            else
+                log_msg "SOCKS5 ($SOCKS5_HOST:$SOCKS5_PORT) is UNREACHABLE, but chain mode is '$ACTUAL_MODE'"
                 enable_direct_mode
             fi
         fi
-        
+
         sleep "$CHECK_INTERVAL"
     done
 }
