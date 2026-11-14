@@ -1,8 +1,20 @@
 ---
+# Get list of installed packages
+- name: Get installed packages
+  ansible.builtin.command:
+    cmd: "opkg list-installed"
+  register: chronyd_installed_pkgs
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+# Update opkg cache only if some package is missing
 - name: Update opkg cache
   ansible.builtin.command:
     cmd: "opkg update"
   changed_when: false
+  no_log: true
+  when: chronyd_pkgs | difference(chronyd_installed_pkgs.stdout_lines | map('split') | map('first') | list) | length > 0
 
 - name: Install chrony packages
   opkg:
