@@ -17,6 +17,7 @@ network_devices:
     ipv6: ""
     vid: ""
     ifname: ""
+    bridge_empty: ""
 
 # interface section
 network_interfaces:

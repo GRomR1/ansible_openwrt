@@ -20,7 +20,11 @@ OpenWRT `network` configuration
 | &emsp;`stp` | Enable the Spanning Tree Protocol (STP) which prevents network loops | `optional` | `boolean` | `0` |
 | &emsp;`igmp_snooping` | Enable IGMP snooping | `optional` | `boolean` | `0` |
 | &emsp;`ipv6` | Enable IPv6 support | `optional` | `boolean` | `0` |
-| `network_interfaces` | List of [network interfaces](https://openwrt.org/docs/guide-user/base-system/| &emsp;`igmp_snooping` | Enable IGMP snooping | `optional` | `boolean` | `0` |
+| &emsp;`vlan` | Enable VLAN functionality | `optional` | `boolean` | `0` |
+| &emsp;`vid` | VLAN ID for VLAN devices | `optional` | `integer` | `1` |
+| &emsp;`ifname` | Underlying interface name for VLAN devices | `optional` | `string` | `eth0` |
+| &emsp;`bridge_empty` | Allow creating an empty bridge device (for bridge devices only) | `optional` | `boolean` | `0` |
+| `network_interfaces` | List of [network interfaces](https://openwrt.org/docs/guide-user/base-system/basic-networking#interface_sections) |  | `list of dictionaries` |  |
 | &emsp;`id` | Unique interface ID | `mandatory` | `string` | `guest` |
 | &emsp;`state` | Interface status (`present` or `absent`) | `required` | `string` | `present` |
 | &emsp;`device` | Network device associated with the interface (for newly created interface) | `optional` | `string` | `guest_dev` |
